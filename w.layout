@@ -1,0 +1,13 @@
+active=1,align=1,box=0,color=49,factory=Fl_Group,h=90,label=w0,labelcolor=0,labelfont=0,labelsize=14,labeltype=0,layout=Layout1,name=w0,output=0,parent=,resizable=0,selection_color=49,w=610,x=20,y=90
+active=1,align=0,box=2,color=49,factory=Fl_Button,h=90,label=w1,labelcolor=0,labelfont=0,labelsize=14,labeltype=0,layout=Layout1,name=w1,output=0,parent=w0,resizable=0,selection_color=49,w=95,x=20,y=90
+active=1,align=0,box=2,color=49,factory=Fl_Button,h=90,label=w2,labelcolor=0,labelfont=0,labelsize=14,labeltype=0,layout=Layout1,name=w2,output=0,parent=w0,resizable=0,selection_color=49,w=96,x=115,y=90
+active=1,align=0,box=2,color=49,factory=Fl_Button,h=90,label=w3,labelcolor=0,labelfont=0,labelsize=14,labeltype=0,layout=Layout1,name=w3,output=0,parent=w0,resizable=0,selection_color=49,w=95,x=211,y=90
+active=1,align=1,box=0,color=49,factory=Layout2,h=120,label=w10,labelcolor=0,labelfont=0,labelsize=14,labeltype=0,layout=Layout1,name=w10,output=0,parent=,resizable=0,selection_color=49,w=610,x=160,y=290
+active=1,align=0,box=2,color=49,factory=Fl_Button,h=50,label=w4,labelcolor=0,labelfont=0,labelsize=14,labeltype=0,layout=Layout2,name=w4,output=0,parent=,resizable=0,selection_color=49,w=50,x=90,y=90
+active=1,align=0,box=2,color=49,factory=Fl_Button,h=50,label=w5,labelcolor=0,labelfont=0,labelsize=14,labeltype=0,layout=Layout2,name=w5,output=0,parent=,resizable=0,selection_color=49,w=50,x=140,y=110
+active=1,align=0,box=2,color=49,factory=Fl_Button,h=50,label=w6,labelcolor=0,labelfont=0,labelsize=14,labeltype=0,layout=Layout2,name=w6,output=0,parent=,resizable=0,selection_color=49,w=50,x=190,y=90
+active=1,align=0,box=2,color=49,factory=Fl_Button,h=50,label=w11,labelcolor=0,labelfont=0,labelsize=14,labeltype=0,layout=Layout2,name=w11,output=0,parent=,resizable=0,selection_color=49,w=50,x=240,y=110
+active=1,align=0,box=2,color=49,factory=Fl_Button,h=50,label=w12,labelcolor=0,labelfont=0,labelsize=14,labeltype=0,layout=Layout2,name=w12,output=0,parent=,resizable=0,selection_color=49,w=50,x=290,y=90
+active=1,align=4,box=3,color=7,factory=Fl_Input,h=50,label=w7,labelcolor=0,labelfont=0,labelsize=14,labeltype=0,layout=Layout3,name=w7,output=0,parent=,resizable=0,selection_color=15,w=50,x=70,y=90
+active=1,align=4,box=3,color=7,factory=Fl_Input,h=50,label=w8,labelcolor=0,labelfont=0,labelsize=14,labeltype=0,layout=Layout3,name=w8,output=0,parent=,resizable=0,selection_color=15,w=50,x=160,y=90
+active=1,align=4,box=3,color=7,factory=Fl_Input,h=50,label=w9,labelcolor=0,labelfont=0,labelsize=14,labeltype=0,layout=Layout3,name=w9,output=0,parent=,resizable=0,selection_color=15,w=50,x=250,y=90
