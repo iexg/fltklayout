@@ -11,6 +11,7 @@ To compile fltklayout on Centos 7:
 #// or download and unzip https://github.com/iexg/fltklayout/archive/master.zip into fltklayout/ directory
 
 `cd fltklayout`
+
 `./mak`
 
 This creates an executable called ***fltklayout_designer***, a library called **libfltklayout.a**, and compiles an example application **test.cpp** to ***a.out***
