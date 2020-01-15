@@ -1,6 +1,6 @@
 # fltklayout
 
-To compile fltklayout on Centos 7:
+# To compile fltklayout on Centos 7:
 
 `sudo yum group install "Development Tools" --setopt=group_package_types=mandatory,default,optional --skip-broken`
 
@@ -16,4 +16,16 @@ To compile fltklayout on Centos 7:
 
 This creates an executable called ***fltklayout_designer***, a library called **libfltklayout.a**, and compiles an example application **test.cpp** to ***a.out***
 
+# To compile on Windows10 in Mobaxterm local terminal:
 
+`apt-get install fltk-devel libfltk-devel libfltk1.3 gcc-g++ gdb cygwin64-binutils git` # Note: may take a long time!
+
+`git clone https://github.com/iexg/fltklayout.git`
+
+`cd fltklayout`
+
+`sed -i 's#^ar #/usr/x86_64-pc-cygwin/bin/ar #' ./mak`
+
+`./mak`
+
+This creates an executable called ***fltklayout_designer***, a library called **libfltklayout.a**, and compiles an example application **test.cpp** to ***a.out***
