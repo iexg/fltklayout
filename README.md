@@ -13,6 +13,6 @@ To compile fltklayout on Centos 7:
 `cd fltklayout`
 `./mak`
 
-This creates an executable called fltklayout_designer, a library called libfltklayout.a, and compiles an example application test.cpp to a.out
+This creates an executable called ***fltklayout_designer***, a library called **libfltklayout.a**, and compiles an example application **test.cpp** to ***a.out***
 
 
