@@ -22,12 +22,12 @@
 #include <FL/Fl_Select_Browser.H>
 #include <FL/Fl_Table.H>
 #include <FL/Fl_Tabs.H>
-#include <FL/Fl_Tile.H>
 #include <FL/Fl_Tooltip.H>
 #include <FL/Fl_Tree.H>
 #include <FL/names.h>
 
 #include "table.h"
+#include "resizebar.h"
 
 #include <limits>
 
@@ -158,7 +158,7 @@ bool WidgetFactoryBase::set_property(Widgets *widgets,Fl_Widget *o,const std::st
             case _FL_GLEAM_ROUND_UP_BOX: b=Fl_Boxtype(FL_GLEAM_ROUND_UP_BOX); break;
             case _FL_GLEAM_ROUND_DOWN_BOX: b=Fl_Boxtype(FL_GLEAM_ROUND_DOWN_BOX); break;
         }
-        o->box(Fl_Boxtype(v));
+        o->box(b);
         return true;
     }
     if (key=="color") { o->color(v); return true; }
@@ -247,34 +247,8 @@ PropertyMap WidgetFactoryBase::get_property_info() {
     return property_info;
 }
 
-template<typename T,bool hasBorder=true,bool isGroup=false>
-struct SimpleFactory : public WidgetFactoryBase {
-
-    SimpleFactory(Factories *factories,const std::string &factory_name) 
-    : WidgetFactoryBase(factories,factory_name)
-    { }
-    virtual ~SimpleFactory() { }
-
-    virtual bool border_visible() { return hasBorder; }
-    virtual bool is_group() { return isGroup; }
-
-    virtual Fl_Widget *create(Widgets *widgets,const std::string &name,int x,int y,int w,int h,const std::string &label) {
-        Fl_Widget *o=new T(x,y,w,h,"");
-        o->copy_label(label.c_str());
-        WidgetInfo *winfo=(new WidgetInfo())->init(widgets,name,this,o);
-        widgets->add_widget(winfo);
-        o->callback(callback_helper,widgets);
-        return o;
-    }
-
-    virtual std::vector<std::string> get_property_names() {
-        static std::vector<std::string> property_names=map_keys_to_vector(get_property_info());
-        return property_names;
-    }
-};
-
-struct PackFactory : public SimpleFactory<Fl_Pack,false,true> {
-    using BASE=SimpleFactory<Fl_Pack,false,true>;
+struct PackFactory : public SimpleWidgetFactory<Fl_Pack,false,true> {
+    using BASE=SimpleWidgetFactory<Fl_Pack,false,true>;
 
     PackFactory(Factories *factories,const std::string &factory_name) : BASE(factories,factory_name) { }
     virtual ~PackFactory() { }
@@ -322,25 +296,60 @@ void Factories::init() {
         delete p.second;
     factories.clear();
 
-    add_factory(new SimpleFactory<Fl_Group,false,true>(this,"Fl_Group"));
-    add_factory(new SimpleFactory<Fl_Scroll,false,true>(this,"Fl_Scroll"));
-    add_factory(new SimpleFactory<Fl_Box,false,false>(this,"Fl_Box"));
-    add_factory(new SimpleFactory<Fl_Button,true,false>(this,"Fl_Button"));
-    add_factory(new SimpleFactory<Fl_Check_Button,false,false>(this,"Fl_Check_Button"));
-    add_factory(new SimpleFactory<Fl_Input,true,false>(this,"Fl_Input"));
-    add_factory(new SimpleFactory<Fl_Multiline_Input,true,false>(this,"Fl_Multiline_Input"));
-    add_factory(new SimpleFactory<Fl_Output,true,false>(this,"Fl_Output"));
-    add_factory(new SimpleFactory<Fl_Multiline_Output,true,false>(this,"Fl_Multiline_Output"));
+    add_factory(new SimpleWidgetFactory<Fl_Group,false,true>(this,"Fl_Group"));
+    add_factory(new SimpleWidgetFactory<Fl_Scroll,false,true>(this,"Fl_Scroll"));
+    add_factory(new SimpleWidgetFactory<Fl_Box,false,false>(this,"Fl_Box"));
+    add_factory(new SimpleWidgetFactory<Fl_Button,true,false>(this,"Fl_Button"));
+    add_factory(new SimpleWidgetFactory<Fl_Check_Button,false,false>(this,"Fl_Check_Button"));
+    add_factory(new SimpleWidgetFactory<Fl_Input,true,false>(this,"Fl_Input"));
+    add_factory(new SimpleWidgetFactory<Fl_Multiline_Input,true,false>(this,"Fl_Multiline_Input"));
+    add_factory(new SimpleWidgetFactory<Fl_Output,true,false>(this,"Fl_Output"));
+    add_factory(new SimpleWidgetFactory<Fl_Multiline_Output,true,false>(this,"Fl_Multiline_Output"));
     add_factory(new PackFactory(this,"Fl_Pack"));
-    add_factory(new SimpleFactory<Fl_Menu_Bar,true,false>(this,"Fl_MenuBar"));
-    add_factory(new SimpleFactory<StringTable,false,false>(this,"StringTable"));
+    add_factory(new SimpleWidgetFactory<Fl_Menu_Bar,true,false>(this,"Fl_MenuBar"));
+    add_factory(new SimpleWidgetFactory<StringTable,false,false>(this,"StringTable"));
+    add_factory(new SimpleWidgetFactory<VerticalResizerBar,false,false>(this,"VerticalResizerBar"));
+    add_factory(new SimpleWidgetFactory<HorizontalResizerBar,false,false>(this,"HorizontalResizerBar"));
 }
 
 std::map<std::string,std::vector<PropertyMap> > load_layout_file(const std::string &filename) {
     std::map<std::string,std::vector<PropertyMap> > layouts;
 
-    FILE *fd=fopen(filename.c_str(),"r");
-    if (fd) {
+    if (filename.find("\n")!=std::string::npos) {
+        // filename is the data
+        const char *line=filename.c_str()+6,*end=line+filename.size()-6;
+        while (line<end) {
+            const char *line_start=line,*line_end=line_start;
+            while (line_end<end && *line_end!='\n') line_end++;
+            line=line_end+1;
+            while (line_start<line_end && (*line_start==' ' || *line_start=='\t')) 
+                line_start++;
+            while (line_end>line_start && *(line_end-1)<' ') line_end--;
+            if (line_start==line_end || *line_start=='#') continue;
+
+            PropertyMap props;
+            const char *s=line_start;
+            while (s<line_end && *s>=' ') {
+                const char *sep=s;
+                while (sep<line_end && *sep>' ' && *sep!='=') sep++;
+                if (sep==line_end || *sep!='=') continue;
+                const char *e=sep+1;
+                while (e<line_end && *e>=' ' && *e!=',') e++;
+
+                std::string pname(unescape(std::string(s,sep-s))),value(unescape(std::string(sep+1,e-(sep+1))));
+                props[pname]=value;
+
+                s=e;
+                if (*s==',') s++;
+            }
+            props["line"]=std::string(line_start,line_end-line_start);
+            layouts[props["layout"]].push_back(props);
+        }
+
+    } else {
+        // load data from file
+        FILE *fd=fopen(filename.c_str(),"r");
+        if (!fd) return layouts;
         char line[65536];
         while (fgets(line,sizeof(line),fd)) {
             char *s=line,*e=s+strlen(s);
@@ -507,6 +516,7 @@ void LayoutWidget::update_layout(LayoutWidgetFactory &factory,std::vector<Proper
                 f->set_property(&widgets,o,nv.first,nv.second); // note: ignoring return code
         }
     }
+
     end();
     size(cw,ch);
 }
@@ -534,7 +544,7 @@ std::string Factories::add_layout_widget_factory(const std::string &factory_name
 void callback_helper(Fl_Widget *o,void *obj) {
     Widgets *widgets=(Widgets*)obj;
     auto info=widgets->get_info(o);
-    if (info && info->callback.target<void(*)(Fl_Widget*,WidgetInfo*)>())
+    if (info && info->callback)
         info->callback(o,info);
 }
 

@@ -95,7 +95,7 @@ struct PropertiesWindow : public Fl_Double_Window {
                 m->copy_label("bitmask");
 
                 size_t sep=7;
-                int idx=0,v=1;
+                int v=1;
                 for(;;) {
                     size_t next_sep=type_info.find_first_of(",}",sep+1);
                     if (next_sep==std::string::npos) break;
@@ -181,7 +181,7 @@ struct PropertiesWindow : public Fl_Double_Window {
                 }
                 case TYPE_BITMASK: {
                     Fl_Pack *p=(Fl_Pack*)widget;
-                    Fl_Int_Input *i=(Fl_Int_Input*)p->child(0);
+//                    Fl_Int_Input *i=(Fl_Int_Input*)p->child(0);
                     Fl_Menu_Button *m=(Fl_Menu_Button*)p->child(1);
                     int n=0;
                     for (int i=0;i<m->menu()->size()-1;i++) {

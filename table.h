@@ -2,8 +2,10 @@
 
 #include <string>
 #include <vector>
+#include <deque>
 #include <algorithm>
 #include <FL/Fl_Table.H>
+#include <FL/fl_draw.H>
 
 namespace fltklayout {
 
@@ -12,10 +14,11 @@ struct StringTable : public Fl_Table {
    struct Header {
        StringTable &table;
        std::string name,label;
-       Fl_Align column_align;
+       Fl_Align column_header_align;
+       Fl_Align column_data_align;
 
        Header(StringTable &table,const bool is_column,const std::string &name,const std::string &label)
-       : table(table),name(name),label(label),column_align(FL_ALIGN_CENTER)
+       : table(table),name(name),label(label),column_header_align(FL_ALIGN_CENTER),column_data_align(FL_ALIGN_CENTER)
        { }
        virtual ~Header() { }
 
@@ -24,7 +27,7 @@ struct StringTable : public Fl_Table {
            fl_push_clip(X,Y,W,H);
            fl_draw_box(FL_THIN_UP_BOX,X,Y,W,H,table.row_header_color());
            fl_color(FL_BLACK);
-           fl_draw(label.c_str(),X,Y,W,H,column_align);
+           fl_draw(label.c_str(),X,Y,W,H,column_header_align);
            fl_pop_clip();
        }
    };
@@ -37,19 +40,48 @@ struct StringTable : public Fl_Table {
    struct Headers {
        std::vector<Header*> headers;
        std::map<std::string,int> name2idx;
-       std::vector<int> view;
+       std::vector<int> view,reverse_view;
 
-       int get_idx(const std::string &name) {
+       int get_idx(const std::string &name) { // idx in data[]
            auto i=name2idx.find(name);
            return i==name2idx.end() ? -1 : i->second;
+       }
+       int get_view(const std::string &name) { // idx on screen
+           int idx=get_idx(name);
+           return idx>=0 ? idx2view(idx) : -1;
        }
        Header *get_header(const int N) { 
            return N>=0 && N<(int)headers.size() ? headers[N] : NULL;
        }
-       int view2idx(const int view_idx) {
-           return view_idx>=0 && view_idx<(int)view.size() ? view[view_idx] : -1;
+       int view2idx(const int I) { // convert screen idx to data[] idx
+           return I>=0 && I<(int)view.size() ? view[I] : -1;
        }
-       void set_view(const std::vector<int> &new_view) { view=new_view; }
+       int idx2view(const int DI) { // convert data[] idx to screen idx
+           return DI>=0 && DI<(int)reverse_view.size() ? reverse_view[DI] : -1;
+       }
+       void set_reverse_view() {
+           reverse_view.resize(headers.size());
+           std::fill(reverse_view.begin(),reverse_view.end(),-1);
+           for (int i=0;i<(int)view.size();i++)
+               reverse_view[view[i]]=i;
+       }
+       void set_view(const std::vector<int> &new_view) { 
+           view=new_view; 
+           set_reverse_view();
+       }
+       void view_remove(const int DI) {
+		   int VI=reverse_view[DI];
+		   if (VI>=0) {
+			   view.erase(view.begin()+VI);
+			   for (auto &i : view) {
+				   if (i>=DI) i--;
+			   }
+			   reverse_view.erase(reverse_view.begin()+DI);
+			   for (int c=DI;c<(int)reverse_view.size();c++) {
+				   if (reverse_view[c]>=VI) reverse_view[c]--;
+			   }
+		   }
+       }
    };
    Headers column_headers,row_headers;
 
@@ -70,15 +102,12 @@ struct StringTable : public Fl_Table {
    }
 
    struct Cell {
-       Cell *selected_prev=NULL,*selected_next=NULL;
-       int is_selected=0x00;
-
        Cell() { }
        virtual ~Cell() { }
 
        virtual std::string text()=0;
        virtual void text(const std::string &new_text)=0;
-       virtual void draw(StringTable &table,int ROW,int COL,int R,int C,int X,int Y,int W,int H)=0;
+       virtual void draw(StringTable &table,int DR,int DC,int R,int C,int X,int Y,int W,int H)=0;
     };
     struct TextCell : public Cell {
         std::string _text;
@@ -89,12 +118,15 @@ struct StringTable : public Fl_Table {
         { }
         virtual ~TextCell() { }
 
-        virtual std::string text() { return _text; }
-        virtual void text(const std::string &new_text) { _text=new_text; }
-        virtual void draw(StringTable &table,int ROW,int COL,int R,int C,int X,int Y,int W,int H) {
+        virtual std::string text() override { return _text; }
+        virtual void text(const std::string &new_text) override { _text=new_text; }
+        virtual void draw(StringTable &table,int DR,int DC,int R,int C,int X,int Y,int W,int H) override {
             fl_push_clip(X,Y,W,H);
-            fl_color(is_selected ? FL_CYAN : FL_WHITE); fl_rectf(X,Y,W,H); 
-            fl_color(FL_GRAY0); fl_draw(_text.c_str(),X,Y,W,H,column_header.column_align);
+            int R1,C1,R2,C2;
+            table.get_selection(R1,C1,R2,C2);
+            Fl_Color bg= (R>=R1 && C>=C1 && R<=R2 && C<=C2) ? FL_CYAN : FL_WHITE;
+            fl_color(bg); fl_rectf(X,Y,W,H); 
+            fl_color(FL_GRAY0); fl_draw(_text.c_str(),X,Y,W,H,column_header.column_data_align);
             fl_color(table.color()); fl_rect(X,Y,W,H);
             fl_pop_clip();
         }
@@ -102,55 +134,46 @@ struct StringTable : public Fl_Table {
     virtual Cell *cell_factory(Header &row_header,Header &column_header) {
         return new TextCell(*this,row_header,column_header);
     }
-    virtual void delete_cell(Cell *c) {
-//        deselect(c);
-        delete c;
-    }
-    
-    std::vector<std::vector<Cell*>> data;
-    void reserve(const int rows,const int cols) {
-        data.reserve(rows);
-        if (!data.empty() && cols>(int)data[0].size()) {
-            for (auto row : data)
-                row.resize(cols);
-        }
-        row_headers.headers.reserve(rows);
-        column_headers.headers.reserve(cols);
-    }
-    Cell *cell(const int ROW,const int COL) { return data[ROW][COL]; }
+    virtual void delete_cell(Cell *c) { delete c; }
+    std::deque<std::vector<Cell*>> data;
+
+    Cell *cell(const int DR,const int DC) { return data[DR][DC]; }
     Cell *cell(const std::string &row_name,const std::string &column_name) {
-        const int ROW=row_headers.get_idx(row_name);
-        if (ROW>=0) {
-            const int COL=column_headers.get_idx(column_name);
-            if (COL>=0) return data[ROW][COL];
+        const int DR=row_headers.get_idx(row_name);
+        if (DR>=0) {
+            const int DC=column_headers.get_idx(column_name);
+            if (DC>=0) return data[DR][DC];
         }
         return NULL;
     }
 
-    void damageCell(const int ROW,const int COL) { redraw_range(ROW,ROW,COL,COL); }
+    void damageCell(const int DR,const int DC) { 
+        int R=row_headers.idx2view(DR),C=column_headers.idx2view(DC);
+        if (R>=0 && C>=0) redraw_range(R,R,C,C);
+    }
     void damageCell(const std::string &row_name,const std::string &column_name) {
-        const int ROW=row_headers.get_idx(row_name);
-        if (ROW>=0) {
-            const int COL=column_headers.get_idx(column_name);
-            if (COL>=0) damageCell(ROW,COL);
+        const int R=row_headers.get_view(row_name);
+        if (R>=0) {
+            const int C=column_headers.get_view(column_name);
+            if (C>=0) damageCell(R,C);
         }
     }
-    void damageCells(const int ROW1,const int COL1,const int ROW2,const int COL2) {
-        damage_zone(ROW1,COL1,ROW2,COL2,ROW2,COL2);
+    void damageCells(const int R1,const int C1,const int R2,const int C2) {
+        damage_zone(R1,C1,R2,C2,R2,C2);
     }
 
-    void setText(const int ROW,const int COL,const std::string &new_text) {
-        Cell *c=cell(ROW,COL);
+    void setText(const int DR,const int DC,const std::string &new_text) {
+        Cell *c=cell(DR,DC);
         if (c) {
             c->text(new_text);
-            damageCell(ROW,COL);
+            damageCell(DR,DC);
         }
     }
     void setText(const std::string &row_name,const std::string &column_name,const std::string &new_text) {
-        const int ROW=row_headers.get_idx(row_name);
-        if (ROW>=0) {
-            const int COL=column_headers.get_idx(column_name);
-            if (COL>=0) setText(ROW,COL,new_text);
+        const int DR=row_headers.get_idx(row_name);
+        if (DR>=0) {
+            const int DC=column_headers.get_idx(column_name);
+            if (DC>=0) setText(DR,DC,new_text);
         }
     }
 
@@ -161,11 +184,12 @@ struct StringTable : public Fl_Table {
         column_headers.headers.clear();
         column_headers.name2idx.clear();
         column_headers.view.clear();
+        column_headers.reverse_view.clear();
         set_cols();
     }
 
     void clear_rows() {
-//        clear_selection();
+        set_selection(-1,-1,-1,-1);
         for (int r=0;r<(int)row_headers.headers.size();r++) {
             Header &row_header=*row_headers.headers[r];
             for (int c=0;c<(int)column_headers.headers.size();c++)
@@ -176,105 +200,110 @@ struct StringTable : public Fl_Table {
         row_headers.headers.clear();
         row_headers.name2idx.clear();
         row_headers.view.clear();
+        row_headers.reverse_view.clear();
         set_rows();
     }
     
-    int add_column(const std::string &name,const std::string &label,const bool _set_cols=true) {
-        int COL=column_headers.get_idx(name);
-        if (COL>=0) 
-            column_headers.headers[COL]->set_label(label);
+    int add_column(const std::string &name,const std::string &label,const int width=0,const Fl_Align data_align=FL_ALIGN_CENTER,const bool _set_cols=true) {
+        int DC=column_headers.get_idx(name);
+        if (DC>=0) 
+            column_headers.headers[DC]->set_label(label);
         else {
-            COL=column_headers.headers.size();
+            DC=column_headers.headers.size();
             Header *new_header=header_factory(true,name,label);
             column_headers.headers.push_back(new_header);
-            column_headers.view.push_back(COL);
-            column_headers.name2idx[name]=COL;
-            for (int r=0;r<(int)data.size();r++) {
-                data[r].resize(COL+1);
-                data[r][COL]=cell_factory(*row_headers.headers[r],*new_header);
+            column_headers.view.push_back(DC);
+            column_headers.reverse_view.push_back(column_headers.view.size()-1);
+            column_headers.name2idx[name]=DC;
+            new_header->column_data_align=data_align;
+            for (int r=0;r<(int)row_headers.headers.size();r++) {
+                data[r].resize(DC+1);
+                data[r][DC]=cell_factory(*row_headers.headers[r],*new_header);
             }
         }
+        if (width) {
+            int C=column_headers.idx2view(DC);
+            if (C>=0) col_width(C,width);
+        }
         if (_set_cols) set_cols();
-        return COL;
+        return DC;
     }
     bool remove_column(const std::string &name,const bool _set_cols=true) {
-        int COL=column_headers.get_idx(name);
-        if (COL<0) return false;
-
-        auto &cv=column_headers.view;
-        cv.erase(std::remove(cv.begin(),cv.end(),COL),cv.end());
-        for (auto& i : cv) {
-            if (i>=COL) --i;
+        int DC=column_headers.get_idx(name);
+        if (DC<0) return false;
+         
+        column_headers.view_remove(DC);
+        set_selection(-1,-1,-1,-1);
+        for (int r=0;r<(int)row_headers.headers.size();r++) {
+            delete_cell(data[r][DC]);
+            data[r].erase(data[r].begin()+DC);
         }
-        for (auto i : column_headers.name2idx) {
-            if (i.second>=COL) --i.second;
+        for (auto &i : column_headers.name2idx) {
+            if (i.second>=DC) --i.second;
         }
 
-        for (int r=0;r<(int)data.size();r++)
-            data[r].erase(data[r].begin()+COL);
-
-        delete_header(column_headers.headers[COL]);
-        column_headers.headers.erase(column_headers.headers.begin()+COL);
+        Header *h=column_headers.headers[DC];
+        column_headers.headers.erase(column_headers.headers.begin()+DC);
+        delete_header(h);
 
         if (_set_cols) set_cols();
         return true;
     }
     
     int add_row(const std::string &name,const std::string &label,const bool _set_rows=true) {
-        int ROW=row_headers.get_idx(name);
-        if (ROW>=0) 
-            row_headers.headers[ROW]->set_label(label);
+        int DR=row_headers.get_idx(name);
+        if (DR>=0) 
+            row_headers.headers[DR]->set_label(label);
         else {
-            ROW=row_headers.headers.size();
+            DR=row_headers.headers.size();
             Header *new_header=header_factory(false,name,label);
             row_headers.headers.push_back(new_header);
-            row_headers.view.push_back(ROW);
-            row_headers.name2idx[name]=ROW;
-            data.resize(ROW+1);
-            data[ROW].resize(column_headers.headers.size());
+            row_headers.view.push_back(DR);
+            row_headers.reverse_view.push_back(row_headers.view.size()-1);
+            row_headers.name2idx[name]=DR;
+            data.resize(DR+1);
+            data[DR].resize(column_headers.headers.size());
             for (int c=0;c<(int)column_headers.headers.size();c++)
-                data[ROW][c]=cell_factory(*new_header,*column_headers.headers[c]);
+                data[DR][c]=cell_factory(*new_header,*column_headers.headers[c]);
         }
         if (_set_rows) set_rows();
-        return ROW;
+        return DR;
     }
     bool remove_row(const std::string &name,const bool _set_rows=true) {
-        int ROW=row_headers.get_idx(name);
-        if (ROW<0) return false;
+        int DR=row_headers.get_idx(name);
+        if (DR<0) return false;
 
-        auto &rv=row_headers.view;
-        rv.erase(std::remove(rv.begin(),rv.end(),ROW),rv.end());
-        for (auto& i : rv) {
-            if (i>=ROW) --i;
+        row_headers.view_remove(DR);
+        set_selection(-1,-1,-1,-1);
+        for (int c=0;c<(int)data[DR].size();c++)
+            delete_cell(data[DR][c]);
+        data.erase(data.begin()+DR);
+        for (auto &i : row_headers.name2idx) {
+            if (i.second>=DR) --i.second;
         }
-        for (auto i : row_headers.name2idx) {
-            if (i.second>=ROW) --i.second;
-        }
 
-        for (int r=0;r<(int)data.size();r++)
-            data[r].erase(data[r].begin()+ROW);
-
-        delete_header(row_headers.headers[ROW]);
-        row_headers.headers.erase(row_headers.headers.begin()+ROW);
+        Header *h=row_headers.headers[DR];
+        row_headers.headers.erase(row_headers.headers.begin()+DR);
+        delete_header(h);
 
         if (_set_rows) set_rows();
         return true;
     }
 
-    virtual void drawColumnHeader(Header &header,int X,int Y,int W,int H) { header.draw(X,Y,W,H); }
-    virtual void drawRowHeader(Header &header,int X,int Y,int W,int H) { header.draw(X,Y,W,H); }
-    virtual void drawCell(Cell &c,int ROW,int COL,int R,int C,int X,int Y,int W,int H) { c.draw(*this,ROW,COL,R,C,X,Y,W,H); }
+    virtual void draw_column_header(Header &header,int X,int Y,int W,int H) { header.draw(X,Y,W,H); }
+    virtual void draw_row_header(Header &header,int X,int Y,int W,int H) { header.draw(X,Y,W,H); }
+    virtual void draw_cell(int DR,int DC,int R,int C,int X,int Y,int W,int H) { cell(DR,DC)->draw(*this,DR,DC,R,C,X,Y,W,H); }
 
     void draw_cell(TableContext context,int R=0,int C=0,int X=0,int Y=0,int W=0,int H=0) {
-        int ROW=row_headers.view2idx(R);
-        int COL=column_headers.view2idx(C);
-        if (ROW<0 || COL<0) return;
+        int DR=row_headers.view2idx(R);
+        int DC=column_headers.view2idx(C);
+        if (DR<0 || DC<0) return;
 
         switch(context) {
             case CONTEXT_STARTPAGE: fl_font(default_textfont,default_textsize); break;
-            case CONTEXT_COL_HEADER: drawColumnHeader(*column_headers.headers[COL],X,Y,W,H); break;
-            case CONTEXT_ROW_HEADER: drawRowHeader(*row_headers.headers[ROW],X,Y,W,H); break;
-            case CONTEXT_CELL: drawCell(*data[ROW][COL],ROW,COL,R,C,X,Y,W,H); break;
+            case CONTEXT_COL_HEADER: draw_column_header(*column_headers.headers[DC],X,Y,W,H); break;
+            case CONTEXT_ROW_HEADER: draw_row_header(*row_headers.headers[DR],X,Y,W,H); break;
+            case CONTEXT_CELL: draw_cell(DR,DC,R,C,X,Y,W,H); break;
             case CONTEXT_RC_RESIZE: break;
             default: break;
         }
@@ -316,12 +345,6 @@ struct StringTable : public Fl_Table {
     }
 
     virtual ~StringTable() { clear(); }
-
-    virtual int handle(int e) {
-// TODO selection
-
-        return Fl_Table::handle(e);
-    }
 };
 
 } // namespace fltklayout

@@ -2,6 +2,8 @@
 
 #include <FL/Fl.H>
 #include <FL/Fl_Group.H>
+#include <FL/Fl_Window.H>
+#include <FL/Fl_Menu_Button.H>
 
 #include <string>
 #include <map>
@@ -353,6 +355,34 @@ struct WidgetFactoryBase : public FactoryInterface {
     }
 };
 
+void callback_helper(Fl_Widget *o,void *obj); // redirects FLTK C callback to WidgetInfo::callback
+
+template<typename T,bool hasBorder=true,bool isGroup=false>
+struct SimpleWidgetFactory : public WidgetFactoryBase {
+
+    SimpleWidgetFactory(Factories *factories,const std::string &factory_name)
+    : WidgetFactoryBase(factories,factory_name)
+    { }
+    virtual ~SimpleWidgetFactory() { }
+
+    virtual bool border_visible() { return hasBorder; }
+    virtual bool is_group() { return isGroup; }
+
+    virtual Fl_Widget *create(Widgets *widgets,const std::string &name,int x,int y,int w,int h,const std::string &label) {
+        Fl_Widget *o=new T(x,y,w,h,"");
+        o->copy_label(label.c_str());
+        WidgetInfo *winfo=(new WidgetInfo())->init(widgets,name,this,o);
+        widgets->add_widget(winfo);
+        o->callback(callback_helper,widgets);
+        return o;
+    }
+
+    virtual std::vector<std::string> get_property_names() {
+        static std::vector<std::string> property_names=map_keys_to_vector(get_property_info());
+        return property_names;
+    }
+};
+
 struct LayoutWidgetFactory : public WidgetFactoryBase {
     std::vector<PropertyMap> layout;
 
@@ -392,7 +422,42 @@ inline Fl_Widget *create_widget(Widgets &widgets,Factories &factories,const std:
     return o;
 }
 
-void callback_helper(Fl_Widget *o,void *obj); // redirects FLTK C callback to WidgetInfo::callback
+class Popup {
+    std::vector<std::string> items;
+public:
+    Popup() { }
+
+    void clear() { items.clear(); }
+
+    std::string text(const int n) { return n>=0 && n<(int)items.size() ? items[n].substr(1) : ""; }
+
+    void push_back(const std::string &item,const bool is_active=true) {
+        char a=is_active ? '1' : '0';
+        items.push_back(std::string(&a,1)+item);
+    }
+
+    std::string show(const int x,const int y) {
+        Fl::first_window()->begin();
+        Fl_Menu_Button m(1,1,1,1);
+        Fl::first_window()->end();
+
+        for (int n=0;n<(int)items.size();n++) {
+            const std::string i=text(n);
+            if (i!="---") {
+                int flags= items[n][0]=='0' ? FL_MENU_INACTIVE : 0;
+                if (text(n+1)=="---") flags|=FL_MENU_DIVIDER;
+                m.add(i.c_str(),0,0,0,flags);
+            }
+        }
+        const Fl_Menu_Item *menu_choice=m.menu()->popup(x,y,0,0,0);
+        if (!menu_choice) return "";
+
+        char path[1024];
+        if (m.item_pathname(path,sizeof(path),menu_choice)!=0) return "";
+
+        return path[0]=='/' ? path+1 : path;
+    }
+};
 
 } // namespace fltklayout
 
