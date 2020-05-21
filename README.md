@@ -12,20 +12,18 @@
 
 `cd fltklayout`
 
-`./mak`
+`make`
 
-This creates an executable called ***fltklayout_designer***, a library called **libfltklayout.a**, and compiles an example application **test.cpp** to ***a.out***
+This creates an executable called ***fltklayout_designer***, a library called **libfltklayout.a**, and compiles an example application **test.cpp** to ***test***
 
 # To compile on Windows10 in Mobaxterm local terminal:
 
-`apt-get install fltk-devel libfltk-devel libfltk1.3 gcc-g++ gdb cygwin64-binutils git` # Note: may take a long time!
+`apt-get install fltk-devel libfltk-devel libfltk1.3 gcc-g++ gdb cygwin64-binutils git make` # Note: may take a long time!
 
 `git clone https://github.com/iexg/fltklayout.git`
 
 `cd fltklayout`
 
-`sed -i 's#^ar #/usr/x86_64-pc-cygwin/bin/ar #' ./mak`
-
-`./mak`
+`PATH=/usr/x86_64-pc-cygwin/bin:$PATH make`
 
 This creates an executable called ***fltklayout_designer***, a library called **libfltklayout.a**, and compiles an example application **test.cpp** to ***a.out***
