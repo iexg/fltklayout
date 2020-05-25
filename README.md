@@ -14,7 +14,7 @@
 
 `make`
 
-This creates an executable called ***fltklayout_designer***, a library called **libfltklayout.a**, and compiles some example applications **test** and ***test2**
+This creates an executable called ***fltklayout_designer***, a library called **libfltklayout.a**, and compiles some example applications ***test*** and ***test2***
 
 # To compile on Windows10 in Mobaxterm local terminal:
 
@@ -26,4 +26,4 @@ This creates an executable called ***fltklayout_designer***, a library called **
 
 `PATH=/usr/x86_64-pc-cygwin/bin:$PATH make`
 
-This creates an executable called ***fltklayout_designer***, a library called **libfltklayout.a**, and compiles some example applications **test** and ***test2***
+This creates an executable called ***fltklayout_designer***, a library called **libfltklayout.a**, and compiles some example applications ***test*** and ***test2***
