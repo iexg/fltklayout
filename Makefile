@@ -18,7 +18,7 @@ SOURCES+=$(wildcard *.c)
 
 OBJS=${BUILDDIR}/fltklayout.o
 
-all: info .depends libfltklayout.a fltklayout_designer test test2
+all: info .depends libfltklayout.a fltklayout_designer test test2 test3
 
 ${BUILDDIR}/.dir:
 	mkdir -p ${BUILDDIR}
@@ -49,6 +49,12 @@ ${BUILDDIR}/test2: ${BUILDDIR}/test2.o ${BUILDDIR}/libfltklayout.a
 
 test2: ${BUILDDIR}/test2
 	cp ${BUILDDIR}/test2 .
+
+${BUILDDIR}/test3: ${BUILDDIR}/test3.o ${BUILDDIR}/libfltklayout.a
+	$(LD) -o ${BUILDDIR}/test3 ${BUILDDIR}/test3.o $(LDFLAGS) $(LIBS)
+
+test3: ${BUILDDIR}/test3
+	cp ${BUILDDIR}/test3 .
 
 ${BUILDDIR}/libfltklayout.a: ${BUILDDIR}/.dir $(OBJS)
 	$(AR) rcs ${BUILDDIR}/libfltklayout.a $(OBJS)
