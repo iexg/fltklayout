@@ -716,11 +716,13 @@ public:
                     while (!name.empty() && std::isdigit(name[name.size()-1]))
                         name=name.substr(0,name.size()-1);
                     while (widgets.get_info(name+std::to_string(name_idx))) name_idx++;
+                    while (namemap.count(name+std::to_string(name_idx))) name_idx++;
                     name+=std::to_string(name_idx);
                 }
                 namemap[oldname]=name;
 
                 int x=atoi(props["x"].c_str())+mx-minx,y=atoi(props["y"].c_str())+my-miny,w=atoi(props["w"].c_str()),h=atoi(props["h"].c_str());
+                if (props["label"]==oldname) props["label"]=name;
                 auto label=props["label"];
 
                 g->begin();
