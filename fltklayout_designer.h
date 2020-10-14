@@ -702,20 +702,21 @@ public:
             action_start(ACTION_PASTE,tab);
 
             std::map<std::string,std::string> namemap;
+            int name_idx=0;
             for (auto &propstr : wprops) {
                 PropertyMap props;
                 props.deserialize(propstr);
                 FactoryInterface *f=factories.get_factory(props["factory"],props["name"]);
                 if (!f) continue;
 
+                // rename any pasted widgets whose names collide with existing widgets
                 auto oldname=props["name"];
                 auto name=oldname;
                 if (widgets.get_info(name)) {
                     while (!name.empty() && std::isdigit(name[name.size()-1]))
                         name=name.substr(0,name.size()-1);
-                    int i=0;
-                    while (widgets.get_info(name+std::to_string(i))) i++;
-                    name+=std::to_string(i);
+                    while (widgets.get_info(name+std::to_string(name_idx))) name_idx++;
+                    name+=std::to_string(name_idx);
                 }
                 namemap[oldname]=name;
 

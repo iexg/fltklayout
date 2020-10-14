@@ -4,7 +4,7 @@ CC=gcc
 CPP=g++ -std=c++11
 LD=g++ -g
 AR=ar
-CFLAGS=-pipe -g -O2 -Wall -fPIC 
+CFLAGS=-pipe -g -O2 -Wall -Wextra -Wpedantic -Wno-unused-parameter -fPIC 
 LIBS=-L${BUILDDIR} -lfltklayout `fltk-config --ldflags` -pthread
 INC=-I.
 LDFLAGS=
