@@ -96,7 +96,8 @@ bool WidgetFactoryBase::set_property(Widgets *widgets,Fl_Widget *o,const std::st
         Fl_Widget *p=widgets->get_widget(val);
         if (!p || !p->as_group() || p==o) 
             return false;
-        p->as_group()->add(o);
+        Fl_Group *g=p->as_group();
+        g->begin(); g->add(o); g->end();
         return true;
     }
     if (key=="name")
