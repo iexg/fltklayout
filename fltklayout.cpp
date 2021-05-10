@@ -267,12 +267,12 @@ struct PackFactory : public SimpleWidgetFactory<Fl_Pack,false,true> {
         if (key=="type") return std::to_string((int)o->type());
         return BASE::get_property(widgets,o,key);
     }
-	virtual PropertyMap get_property_info() {
+    virtual PropertyMap get_property_info() {
         static PropertyMap pm=combine_maps(BASE::get_property_info(),{ 
             { "type", "enum{Fl_Pack::VERTICAL=0,Fl_Pack::HORIZONTAL=1}" } 
         });
         return pm;
-	}
+    }
 
     virtual void resize(Fl_Widget *o,int x,int y,int w,int h) { 
         Fl_Group *g=o->as_group();
@@ -532,7 +532,7 @@ std::string Factories::load_layouts_as_widgets(const std::string &filename) {
         auto &layout=p.second;
 
         if (!layout.empty())
-			add_factory(new LayoutWidgetFactory(this,layout_name,layout));
+            add_factory(new LayoutWidgetFactory(this,layout_name,layout));
     }
     return ""; // success
 }

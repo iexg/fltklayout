@@ -1022,29 +1022,29 @@ public:
     }
 
     std::string load(const std::string &filename) {
-		auto layouts=load_layout_file(filename);
-		if (layouts.empty()) 
-			return "Could not read file "+filename;
+        auto layouts=load_layout_file(filename);
+        if (layouts.empty()) 
+            return "Could not read file "+filename;
 
         std::string err;
         tabs_clear();
 
         factories.init();
-		for (auto &i : layouts) 
+        for (auto &i : layouts) 
             factories.add_layout_widget_factory(i.first,i.second);
 
         clear_selection();
-		for (auto &i : layouts) {
-			auto layout=i.first;
+        for (auto &i : layouts) {
+            auto layout=i.first;
             tabs_remove(layout);
-			Tab *t=tabs_add(layout);
-			err=widgets.load_layout(factories,t->as_group(),filename,layout);
-			if (!err.empty()) break;
-		}
+            Tab *t=tabs_add(layout);
+            err=widgets.load_layout(factories,t->as_group(),filename,layout);
+            if (!err.empty()) break;
+        }
 
         if (tabs->children()==0) tabs_add("Layout1");
         return err;
-	}
+    }
 
     typedef std::vector<std::string> UndoPoint;
     std::vector<UndoPoint*> undo_points;

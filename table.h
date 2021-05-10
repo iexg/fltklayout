@@ -70,17 +70,17 @@ struct StringTable : public Fl_Table {
            set_reverse_view();
        }
        void view_remove(const int DI) {
-		   int VI=reverse_view[DI];
-		   if (VI>=0) {
-			   view.erase(view.begin()+VI);
-			   for (auto &i : view) {
-				   if (i>=DI) i--;
-			   }
-			   reverse_view.erase(reverse_view.begin()+DI);
-			   for (int c=DI;c<(int)reverse_view.size();c++) {
-				   if (reverse_view[c]>=VI) reverse_view[c]--;
-			   }
-		   }
+           int VI=reverse_view[DI];
+           if (VI>=0) {
+               view.erase(view.begin()+VI);
+               for (auto &i : view) {
+                   if (i>=DI) i--;
+               }
+               reverse_view.erase(reverse_view.begin()+DI);
+               for (int c=DI;c<(int)reverse_view.size();c++) {
+                   if (reverse_view[c]>=VI) reverse_view[c]--;
+               }
+           }
        }
    };
    Headers column_headers,row_headers;
